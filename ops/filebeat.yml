@@ -1,0 +1,12 @@
+filebeat.inputs:
+  - type: filestream
+    id: yp-jsonl
+    paths: [/var/www/yenipazaryeri/backend-php/storage/logs/app.jsonl]
+    parsers:
+      - ndjson:
+          target: ""
+          overwrite_keys: true
+
+output.elasticsearch:
+  hosts: ["http://opensearch:9200"]
+  index: "yenipazaryeri-%{+yyyy.MM.dd}"

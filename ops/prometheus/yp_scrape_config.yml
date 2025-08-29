@@ -1,0 +1,8 @@
+# Prometheus scrape config for Yenipazaryeri
+scrape_configs:
+  - job_name: 'yenipazaryeri'
+    metrics_path: /queue/metrics
+    static_configs:
+      - targets: ['backend-host:8000']  # PHP server host:port
+    scrape_interval: 15s
+    scrape_timeout: 10s

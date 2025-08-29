@@ -1,0 +1,28 @@
+body { 
+  margin: 0; 
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji"; 
+}
+
+.grid { 
+  display: grid; 
+}
+
+.grid.gap-4 { 
+  gap: 16px; 
+}
+
+:root {
+  --primary: #1677ff;
+  --accent:  #13c2c2;
+  --header-bg: #ffffff;
+}
+.dark { --header-bg: #0f1114; }
+
+/* Lazy loading için blur efekti */
+img[loading="lazy"] { 
+  filter: blur(4px); 
+  transition: filter .2s ease; 
+}
+img[loading="lazy"].loaded { 
+  filter: blur(0); 
+}

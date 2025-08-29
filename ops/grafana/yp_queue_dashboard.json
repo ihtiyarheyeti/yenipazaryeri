@@ -1,0 +1,34 @@
+{
+  "title": "Yenipazaryeri - Queue & API",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Jobs Pending",
+      "targets": [{ "expr": "jobs_total_pending" }]
+    },
+    {
+      "type": "stat",
+      "title": "Jobs Error",
+      "targets": [{ "expr": "jobs_total_error" }]
+    },
+    {
+      "type": "stat",
+      "title": "Jobs Dead",
+      "targets": [{ "expr": "jobs_total_dead" }]
+    },
+    {
+      "type": "graph",
+      "title": "Processed per minute",
+      "targets": [{ "expr": "rate(jobs_total_done[5m])" }]
+    },
+    {
+      "type": "graph",
+      "title": "Deferred jobs",
+      "targets": [{ "expr": "jobs_total_deferred" }]
+    }
+  ],
+  "templating": { "list": [] },
+  "schemaVersion": 36,
+  "version": 1
+}

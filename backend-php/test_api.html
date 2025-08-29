@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>Yenipazaryeri API Test</h1>
+    
+    <h2>Products API Test</h2>
+    <button onclick="testProducts()">Test Products</button>
+    <div id="products-result"></div>
+    
+    <h2>Variants API Test</h2>
+    <button onclick="testVariants()">Test Variants</button>
+    <div id="variants-result"></div>
+    
+    <script>
+        async function testProducts() {
+            try {
+                const response = await fetch('/yenipazaryeri/backend-php/public/products?tenant_id=1&page=1&pageSize=10');
+                const data = await response.json();
+                document.getElementById('products-result').innerHTML = 
+                    '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('products-result').innerHTML = 
+                    '<p style="color:red">Hata: ' + error.message + '</p>';
+            }
+        }
+        
+        async function testVariants() {
+            try {
+                const response = await fetch('/yenipazaryeri/backend-php/public/variants?tenant_id=1&page=1&pageSize=20');
+                const data = await response.json();
+                document.getElementById('variants-result').innerHTML = 
+                    '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('variants-result').innerHTML = 
+                    '<pre style="color:red">Hata: ' + error.message + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+version: "3.9"
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: entegrasyon_paneli
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports: ["3306:3306"]
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD","mysqladmin","ping","-h","localhost","-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  php:
+    build: ./docker/php
+    volumes: ["./backend-php:/var/www/html"]
+    environment:
+      TENANT_ID: 1
+    depends_on: [mysql, redis]
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./backend-php/public:/var/www/html/public
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports: ["8080:80"]
+    depends_on: [php]
+
+  worker:
+    image: php:8.2-cli
+    working_dir: /app
+    volumes: ["./backend-php:/app"]
+    command: php bin/queue-worker.php
+    depends_on: [php, mysql, redis]
+
+  woo-sync:
+    image: php:8.2-cli
+    working_dir: /app
+    volumes: ["./backend-php:/app"]
+    environment:
+      TENANT_ID: 1
+      STD_ENDPOINT: http://nginx/standardize
+    command: php bin/woo-sync.php
+    depends_on: [nginx, php]
+
+  ty-sync:
+    image: php:8.2-cli
+    working_dir: /app
+    volumes: ["./backend-php:/app"]
+    environment:
+      TENANT_ID: 1
+      STD_ENDPOINT: http://nginx/standardize
+    command: php bin/ty-sync.php
+    depends_on: [nginx, php]
+
+  frontend:
+    build: ./frontend-react
+    ports: ["3000:3000"]
+
+  db-backup:
+    image: fradelg/mysql-cron-backup
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASS: root
+      MYSQL_DATABASE: entegrasyon_paneli
+      CRON_TIME: "0 2 * * *"   # her gece 02:00
+      INIT_BACKUP: "true"      # ilk açılışta hemen bir yedek alsın
+      GZIP_LEVEL: "6"
+      TZ: "Europe/Istanbul"
+    volumes:
+      - ./backups:/backup
+    depends_on:
+      - mysql
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+    name: yenipazaryeri_dbdata   # SABİT İSİM
+    external: false
