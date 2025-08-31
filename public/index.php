@@ -148,6 +148,7 @@ $router->get('/connections/{id}/test', [ConnectionsController::class, 'test']);
 
 // ✅ WooCommerce route’ları
 $router->get('/api/woo/products', [WooCommerceController::class, 'listProducts']);
+$router->get('/import/woocommerce/pull', [WooCommerceController::class, 'listProducts']);
 $router->post('/import/woocommerce/pull', [WooCommerceController::class, 'listProducts']); // frontend beklediği route
 
 // ---- DISPATCH ----
