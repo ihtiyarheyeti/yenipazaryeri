@@ -11,7 +11,7 @@ header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
-// OPTIONS preflight için 204 döndür
+// Eğer istek OPTIONS ise 204 döndür
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -165,5 +165,13 @@ try {
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
     header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
     
-    echo json_encode(['ok' => false, 'error' => 'Internal server error: '.$e->getMessage()]);
+    // Timeout durumlarını kontrol et
+    if (strpos($e->getMessage(), 'timeout') !== false || 
+        strpos($e->getMessage(), '504') !== false ||
+        strpos($e->getMessage(), 'Gateway Timeout') !== false) {
+        http_response_code(504);
+        echo json_encode(['ok' => false, 'error' => 'Gateway Timeout']);
+    } else {
+        echo json_encode(['ok' => false, 'error' => 'Internal server error: '.$e->getMessage()]);
+    }
 }
