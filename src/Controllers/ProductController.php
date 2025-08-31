@@ -7,135 +7,32 @@ class ProductController {
   
   public function index(array $p, array $b, array $q): array {
     try {
-      error_log("ProductController::index çağrıldı - tenant: " . ($q['tenant_id'] ?? 'null'));
-      
-      $tenant = (int)($q['tenant_id'] ?? \App\Context::$tenantId); 
-      $page = max(1, (int)($q['page'] ?? 1)); 
-      $ps = min(50, max(1, (int)($q['pageSize'] ?? 10)));
-      $off = ($page - 1) * $ps; 
-      
-      error_log("ProductController::index - tenant: $tenant, page: $page, pageSize: $ps, offset: $off");
+      $tenantId = \App\Context::$tenantId;
       
       $pdo = \App\Database::pdo();
       if (!$pdo) {
-        error_log("ProductController::index - Database bağlantısı başarısız");
         return ['ok' => false, 'error' => 'database_connection_failed'];
       }
       
-      $where = "WHERE p.tenant_id=?"; 
-      $bind = [$tenant];
+      // Sadece aktif tenant'ın ürünlerini say
+      $countStmt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE tenant_id = ?");
+      $countStmt->execute([$tenantId]);
+      $count = (int)$countStmt->fetchColumn();
       
-      // Gelişmiş arama ve filtreler
-      if($qstr = trim((string)($q['q'] ?? ''))) { 
-        $where .= " AND (p.name LIKE ? OR p.brand LIKE ? OR p.description LIKE ?)"; 
-        array_push($bind, "%$qstr%", "%$qstr%", "%$qstr%"); 
-      }
+      // Sadece aktif tenant'ın ürünlerini getir
+      $stmt = $pdo->prepare("SELECT id, name, thumbnail_url, created_at, updated_at 
+                             FROM products 
+                             WHERE tenant_id = ? 
+                             ORDER BY id DESC");
+      $stmt->execute([$tenantId]);
+      $items = $stmt->fetchAll();
       
-      if($brand = trim((string)($q['brand'] ?? ''))) { 
-        $where .= " AND p.brand=?"; 
-        $bind[] = $brand; 
-      }
-      
-      if(isset($q['priceMin'])) { 
-        $where .= " AND EXISTS(SELECT 1 FROM variants v WHERE v.product_id=p.id AND v.price>=?)"; 
-        $bind[] = (float)$q['priceMin']; 
-      }
-      
-      if(isset($q['priceMax'])) { 
-        $where .= " AND EXISTS(SELECT 1 FROM variants v WHERE v.product_id=p.id AND v.price<=?)"; 
-        $bind[] = (float)$q['priceMax']; 
-      }
-      
-      if(isset($q['stockMin'])) { 
-        $where .= " AND EXISTS(SELECT 1 FROM variants v WHERE v.product_id=p.id AND v.stock>=?)"; 
-        $bind[] = (int)$q['stockMin']; 
-      }
-      
-      if(isset($q['stockMax'])) { 
-        $where .= " AND EXISTS(SELECT 1 FROM variants v WHERE v.product_id=p.id AND v.stock<=?)"; 
-        $bind[] = (int)$q['stockMax']; 
-      }
-      
-      if($mapped = $q['mapped'] ?? null) {
-        if($mapped === 'none') { 
-          $where .= " AND NOT EXISTS(SELECT 1 FROM product_marketplace_mapping m WHERE m.product_id=p.id)"; 
-        }
-        if($mapped === 'ty') { 
-          $where .= " AND EXISTS(SELECT 1 FROM product_marketplace_mapping m WHERE m.product_id=p.id AND m.marketplace_id=1)"; 
-        }
-        if($mapped === 'woo') { 
-          $where .= " AND EXISTS(SELECT 1 FROM product_marketplace_mapping m WHERE m.product_id=p.id AND m.marketplace_id=2)"; 
-        }
-      }
-      
-      if(($mp = (int)($q['mp'] ?? 0)) > 0) { 
-        $where .= " AND EXISTS(SELECT 1 FROM product_marketplace_mapping m WHERE m.product_id=p.id AND m.marketplace_id=?)"; 
-        $bind[] = $mp; 
-      }
-      
-      // Source filtresi (origin_mp)
-      if($source = trim((string)($q['source'] ?? ''))) {
-        if(in_array($source, ['woo', 'trendyol', 'local'])) {
-          $where .= " AND p.origin_mp = ?";
-          $bind[] = $source;
-        }
-      }
-      
-      // Only unmapped filtresi
-      if (!empty($q['only_unmapped'])) {
-        $where .= " AND (p.category_match='unmapped' OR EXISTS(SELECT 1 FROM variants v2 WHERE v2.product_id=p.id AND v2.attrs_match='unmapped'))";
-      }
-      
-      // Search filtresi (name ve SKU)
-      if ($search = trim((string)($q['search'] ?? ''))) {
-        $where .= " AND (p.name LIKE ? OR EXISTS(SELECT 1 FROM variants v3 WHERE v3.product_id=p.id AND (v3.sku LIKE ?)))";
-        $bind[] = "%$search%";
-        $bind[] = "%$search%";
-      }
-      
-      if(!empty($q['dateFrom'])) { 
-        $where .= " AND p.created_at>=?"; 
-        $bind[] = $q['dateFrom']; 
-      }
-      
-      if(!empty($q['dateTo'])) { 
-        $where .= " AND p.created_at<=?"; 
-        $bind[] = $q['dateTo']; 
-      }
-      
-      // Status filtresi
-      if(!empty($q['status']) && in_array($q['status'],['draft','active','archived'],true)){
-        $where.=" AND p.status=?"; $bind[]=$q['status'];
-      }
-      
-      error_log("ProductController::index - SQL WHERE: $where");
-      error_log("ProductController::index - Bind params: " . json_encode($bind));
-      
-      $total = $pdo->prepare("SELECT COUNT(*) FROM products p $where"); 
-      $total->execute($bind); 
-      $tot = (int)$total->fetchColumn();
-      
-      error_log("ProductController::index - Total products: $tot");
-      
-      $st = $pdo->prepare("SELECT p.*, 
-        p.origin_mp,
-        p.origin_external_id,
-        (SELECT COUNT(*) FROM variants v WHERE v.product_id=p.id) AS variant_count,
-        (SELECT external_id FROM product_marketplace_mapping m WHERE m.product_id=p.id AND m.marketplace_id=1 LIMIT 1) AS trendyol_external_id,
-        (SELECT external_id FROM product_marketplace_mapping m WHERE m.product_id=p.id AND m.marketplace_id=2 LIMIT 1) AS woo_external_id,
-        p.category_match,
-        (SELECT GROUP_CONCAT(v.attrs_match) FROM variants v WHERE v.product_id=p.id) AS attrs_match_status,
-        (SELECT MIN(v.sku) FROM variants v WHERE v.product_id=p.id) AS first_sku
-        FROM products p $where ORDER BY p.id DESC LIMIT $off,$ps");
-      $st->execute($bind);
-      
-      $items = $st->fetchAll();
-      error_log("ProductController::index - Found items: " . count($items));
-      
-      return ['ok' => true, 'items' => $items, 'total' => $tot, 'page' => $page, 'pageSize' => $ps];
+      return [
+        'ok' => true,
+        'count' => $count,
+        'items' => $items
+      ];
     } catch (\Throwable $e) {
-      error_log("ProductController::index hatası: " . $e->getMessage());
-      error_log("ProductController::index stack trace: " . $e->getTraceAsString());
       return ['ok' => false, 'error' => $e->getMessage()];
     }
   }
