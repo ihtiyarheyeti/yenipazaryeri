@@ -1,11 +1,17 @@
 <?php
 declare(strict_types=1);
 
+// Output buffering başlat
+ob_start();
+
 // Debug kapalı (React JSON parse hatalarını önlemek için)
 error_reporting(0);
 ini_set('display_errors', '0');
 
-// ✅ CORS ayarları - en üstte
+// WooCommerce import için timeout artır
+set_time_limit(300);
+
+// ✅ CORS ayarları - en üstte (her durumda gönderilecek)
 header("Access-Control-Allow-Origin: https://panel.woontegra.com");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
@@ -14,6 +20,7 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-W
 // Eğer istek OPTIONS ise 204 döndür
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
+    ob_end_flush();
     exit;
 }
 
@@ -159,19 +166,16 @@ try {
     $response = $router->dispatch($method, $path);
     echo json_encode($response, JSON_UNESCAPED_UNICODE);
 } catch (Exception $e) {
-    // CORS header'larını catch bloklarında da ekle
+    // CORS header'larını catch bloklarında da ekle (her durumda)
     header("Access-Control-Allow-Origin: https://panel.woontegra.com");
     header("Access-Control-Allow-Credentials: true");
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
     header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
     
-    // Timeout durumlarını kontrol et
-    if (strpos($e->getMessage(), 'timeout') !== false || 
-        strpos($e->getMessage(), '504') !== false ||
-        strpos($e->getMessage(), 'Gateway Timeout') !== false) {
-        http_response_code(504);
-        echo json_encode(['ok' => false, 'error' => 'Gateway Timeout']);
-    } else {
-        echo json_encode(['ok' => false, 'error' => 'Internal server error: '.$e->getMessage()]);
-    }
+    // HTTP 200 döndür, JSON hata mesajı gönder
+    http_response_code(200);
+    echo json_encode(['ok' => false, 'error' => 'Backend hata mesajı: ' . $e->getMessage()]);
 }
+
+// Output buffering sonlandır
+ob_end_flush();
