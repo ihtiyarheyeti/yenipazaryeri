@@ -142,10 +142,9 @@ $router->get('/marketplaces', [MarketplaceController::class, 'index']);
 $router->post('/marketplaces', [MarketplaceController::class, 'store']);
 
 // Connections
-$router->get('/connections', [ConnectionController::class, 'index']);
-$router->post('/connections', [ConnectionController::class, 'create']);
-$router->get('/connections/ping/(\\d+)', [ConnectionController::class, 'ping']);
-$router->delete('/connections/(\\d+)', [ConnectionController::class, 'delete']);
+$router->get('/connections', [ConnectionsController::class, 'index']);
+$router->post('/connections', [ConnectionsController::class, 'store']);
+$router->get('/connections/{id}/test', [ConnectionsController::class, 'test']);
 
 // ✅ WooCommerce route’ları
 $router->get('/api/woo/products', [WooCommerceController::class, 'listProducts']);
