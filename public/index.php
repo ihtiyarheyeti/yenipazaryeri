@@ -11,14 +11,20 @@ ini_set('display_errors', '0');
 // WooCommerce import için timeout artır
 set_time_limit(300);
 
-// ✅ CORS ayarları - en üstte (her durumda gönderilecek)
+// ✅ AGGRESIF CORS AYARLARI - EN ÜSTTE VE HER DURUMDA
 header("Access-Control-Allow-Origin: https://panel.woontegra.com");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Requested-With");
 
-// Eğer istek OPTIONS ise 204 döndür
+// OPTIONS preflight istekleri için hemen yanıt ver
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    // CORS header'larını tekrar ekle
+    header("Access-Control-Allow-Origin: https://panel.woontegra.com");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Requested-With");
+    
     http_response_code(204);
     ob_end_flush();
     exit;
@@ -170,7 +176,7 @@ try {
     header("Access-Control-Allow-Origin: https://panel.woontegra.com");
     header("Access-Control-Allow-Credentials: true");
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Requested-With");
     
     // HTTP 200 döndür, JSON hata mesajı gönder
     http_response_code(200);

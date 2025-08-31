@@ -1,13 +1,18 @@
-# CORS ayarları
+# CORS ayarları - AGGRESIF
 Header always set Access-Control-Allow-Origin "https://panel.woontegra.com"
 Header always set Access-Control-Allow-Credentials "true"
 Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control"
 
 # OPTIONS preflight istekleri için
 RewriteEngine On
 RewriteCond %{REQUEST_METHOD} OPTIONS
 RewriteRule ^(.*)$ $1 [R=204,L]
+
+# Tüm istekleri index.php'ye yönlendir
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
 
 # Timeout ayarları
 php_value max_execution_time 300
