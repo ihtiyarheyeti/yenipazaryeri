@@ -115,12 +115,15 @@ final class WooCommerceController {
     private function processProduct(\PDO $pdo, int $connectionId, array $product): string {
         try {
             $pdo->beginTransaction();
+            
+            $tenantId = \App\Context::$tenantId;
 
-            // Ürün zaten var mı kontrol et
+            // Ürün zaten var mı kontrol et (tenant_id ile birlikte)
             $stmt = $pdo->prepare("SELECT id FROM products 
                                    WHERE origin_mp = 'woo' 
-                                     AND origin_external_id = ?");
-            $stmt->execute([$product['id']]);
+                                     AND origin_external_id = ?
+                                     AND tenant_id = ?");
+            $stmt->execute([$product['id'], $tenantId]);
             $existingProduct = $stmt->fetch();
 
             $productData = [
@@ -129,6 +132,7 @@ final class WooCommerceController {
                 'origin_mp' => 'woo',
                 'origin_external_id' => $product['id'],
                 'connection_id' => $connectionId,
+                'tenant_id' => $tenantId,
                 'thumbnail_url' => null
             ];
 
@@ -138,31 +142,33 @@ final class WooCommerceController {
             }
 
             if ($existingProduct) {
-                // Ürünü güncelle
+                // Ürünü güncelle (sadece tenant_id eşleşen)
                 $stmt = $pdo->prepare("UPDATE products SET 
                                        name = ?, description = ?, thumbnail_url = ?, 
                                        updated_at = NOW() 
-                                       WHERE id = ?");
+                                       WHERE id = ? AND tenant_id = ?");
                 $stmt->execute([
                     $productData['name'],
                     $productData['description'],
                     $productData['thumbnail_url'],
-                    $existingProduct['id']
+                    $existingProduct['id'],
+                    $tenantId
                 ]);
                 $productId = $existingProduct['id'];
                 $result = 'updated';
             } else {
-                // Yeni ürün ekle
+                // Yeni ürün ekle (tenant_id ile birlikte)
                 $stmt = $pdo->prepare("INSERT INTO products 
                                        (name, description, origin_mp, origin_external_id, 
-                                        connection_id, thumbnail_url, created_at, updated_at) 
-                                       VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())");
+                                        connection_id, tenant_id, thumbnail_url, created_at, updated_at) 
+                                       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
                 $stmt->execute([
                     $productData['name'],
                     $productData['description'],
                     $productData['origin_mp'],
                     $productData['origin_external_id'],
                     $productData['connection_id'],
+                    $productData['tenant_id'],
                     $productData['thumbnail_url']
                 ]);
                 $productId = $pdo->lastInsertId();
@@ -170,7 +176,7 @@ final class WooCommerceController {
             }
 
             // Varyant bilgilerini işle (sadece ana ürün varyantı)
-            $this->processVariants($pdo, $productId, $product);
+            $this->processVariants($pdo, $productId, $product, $tenantId);
 
             $pdo->commit();
             return $result;
@@ -181,7 +187,7 @@ final class WooCommerceController {
         }
     }
 
-    private function processVariants(\PDO $pdo, int $productId, array $product): void {
+    private function processVariants(\PDO $pdo, int $productId, array $product, int $tenantId): void {
         // Mevcut varyantları sil (yeniden oluşturmak için)
         $stmt = $pdo->prepare("DELETE FROM variants WHERE product_id = ?");
         $stmt->execute([$productId]);
@@ -189,6 +195,7 @@ final class WooCommerceController {
         // Ana ürün varyantı
         $variantData = [
             'product_id' => $productId,
+            'tenant_id' => $tenantId,
             'sku' => $product['sku'] ?? '',
             'price' => $product['price'] ?? 0,
             'stock_quantity' => $product['stock_quantity'] ?? 0,
@@ -196,10 +203,11 @@ final class WooCommerceController {
         ];
 
         $stmt = $pdo->prepare("INSERT INTO variants 
-                               (product_id, sku, price, stock_quantity, is_active, created_at, updated_at) 
-                               VALUES (?, ?, ?, ?, ?, NOW(), NOW())");
+                               (product_id, tenant_id, sku, price, stock_quantity, is_active, created_at, updated_at) 
+                               VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())");
         $stmt->execute([
             $variantData['product_id'],
+            $variantData['tenant_id'],
             $variantData['sku'],
             $variantData['price'],
             $variantData['stock_quantity'],
