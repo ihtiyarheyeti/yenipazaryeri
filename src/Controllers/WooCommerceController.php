@@ -117,13 +117,15 @@ final class WooCommerceController {
             $pdo->beginTransaction();
             
             $tenantId = \App\Context::$tenantId;
+            $customerId = 1; // Varsayılan customer_id
 
-            // Ürün zaten var mı kontrol et (tenant_id ile birlikte)
+            // Ürün zaten var mı kontrol et (tenant_id ve customer_id ile birlikte)
             $stmt = $pdo->prepare("SELECT id FROM products 
                                    WHERE origin_mp = 'woo' 
                                      AND origin_external_id = ?
-                                     AND tenant_id = ?");
-            $stmt->execute([$product['id'], $tenantId]);
+                                     AND tenant_id = ?
+                                     AND customer_id = ?");
+            $stmt->execute([$product['id'], $tenantId, $customerId]);
             $existingProduct = $stmt->fetch();
 
             $productData = [
@@ -133,6 +135,7 @@ final class WooCommerceController {
                 'origin_external_id' => $product['id'],
                 'connection_id' => $connectionId,
                 'tenant_id' => $tenantId,
+                'customer_id' => $customerId,
                 'thumbnail_url' => null
             ];
 
@@ -142,26 +145,27 @@ final class WooCommerceController {
             }
 
             if ($existingProduct) {
-                // Ürünü güncelle (sadece tenant_id eşleşen)
+                // Ürünü güncelle (tenant_id ve customer_id eşleşen)
                 $stmt = $pdo->prepare("UPDATE products SET 
                                        name = ?, description = ?, thumbnail_url = ?, 
                                        updated_at = NOW() 
-                                       WHERE id = ? AND tenant_id = ?");
+                                       WHERE id = ? AND tenant_id = ? AND customer_id = ?");
                 $stmt->execute([
                     $productData['name'],
                     $productData['description'],
                     $productData['thumbnail_url'],
                     $existingProduct['id'],
-                    $tenantId
+                    $tenantId,
+                    $customerId
                 ]);
                 $productId = $existingProduct['id'];
                 $result = 'updated';
             } else {
-                // Yeni ürün ekle (tenant_id ile birlikte)
+                // Yeni ürün ekle (tenant_id ve customer_id ile birlikte)
                 $stmt = $pdo->prepare("INSERT INTO products 
                                        (name, description, origin_mp, origin_external_id, 
-                                        connection_id, tenant_id, thumbnail_url, created_at, updated_at) 
-                                       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
+                                        connection_id, tenant_id, customer_id, thumbnail_url, created_at, updated_at) 
+                                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
                 $stmt->execute([
                     $productData['name'],
                     $productData['description'],
@@ -169,6 +173,7 @@ final class WooCommerceController {
                     $productData['origin_external_id'],
                     $productData['connection_id'],
                     $productData['tenant_id'],
+                    $productData['customer_id'],
                     $productData['thumbnail_url']
                 ]);
                 $productId = $pdo->lastInsertId();
