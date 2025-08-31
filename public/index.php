@@ -5,12 +5,13 @@ declare(strict_types=1);
 error_reporting(0);
 ini_set('display_errors', '0');
 
-// ✅ CORS ayarları
+// ✅ CORS ayarları - en üstte
 header("Access-Control-Allow-Origin: https://panel.woontegra.com");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
+// OPTIONS preflight için 204 döndür
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -158,5 +159,11 @@ try {
     $response = $router->dispatch($method, $path);
     echo json_encode($response, JSON_UNESCAPED_UNICODE);
 } catch (Exception $e) {
+    // CORS header'larını catch bloklarında da ekle
+    header("Access-Control-Allow-Origin: https://panel.woontegra.com");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+    
     echo json_encode(['ok' => false, 'error' => 'Internal server error: '.$e->getMessage()]);
 }
