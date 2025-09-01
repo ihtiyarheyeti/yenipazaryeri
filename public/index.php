@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// PHP timeout artır
+set_time_limit(300);
+
 // Output buffering başlat
 ob_start();
 
@@ -8,23 +11,14 @@ ob_start();
 error_reporting(0);
 ini_set('display_errors', '0');
 
-// WooCommerce import için timeout artır
-set_time_limit(300);
-
-// ✅ AGGRESIF CORS AYARLARI - EN ÜSTTE VE HER DURUMDA
+// ✅ CORS HEADER'LARI - HER RESPONSE İÇİN ZORUNLU
 header("Access-Control-Allow-Origin: https://panel.woontegra.com");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Requested-With");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
-// OPTIONS preflight istekleri için hemen yanıt ver
+// OPTIONS preflight için
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    // CORS header'larını tekrar ekle
-    header("Access-Control-Allow-Origin: https://panel.woontegra.com");
-    header("Access-Control-Allow-Credentials: true");
-    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Requested-With");
-    
     http_response_code(204);
     ob_end_flush();
     exit;
@@ -176,11 +170,11 @@ try {
     header("Access-Control-Allow-Origin: https://panel.woontegra.com");
     header("Access-Control-Allow-Credentials: true");
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-Requested-With");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
     
     // HTTP 200 döndür, JSON hata mesajı gönder
     http_response_code(200);
-    echo json_encode(['ok' => false, 'error' => 'Backend hata mesajı: ' . $e->getMessage()]);
+    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 }
 
 // Output buffering sonlandır
