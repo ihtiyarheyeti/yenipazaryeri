@@ -4,13 +4,13 @@ declare(strict_types=1);
 // PHP timeout artır
 set_time_limit(300);
 
-// ✅ CORS HEADER'LARI - EN ÜSTTE, HER RESPONSE İÇİN ZORUNLU
+// ✅ CORS HEADER'LARI - HER YANITIN BAŞINDA
 header("Access-Control-Allow-Origin: https://panel.woontegra.com");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
-// OPTIONS preflight için
+// Eğer istek OPTIONS ise
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -23,6 +23,7 @@ ob_start();
 error_reporting(0);
 ini_set('display_errors', '0');
 
+// JSON response için Content-Type
 header("Content-Type: application/json; charset=utf-8");
 
 // Autoload
