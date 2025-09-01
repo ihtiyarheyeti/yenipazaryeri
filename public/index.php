@@ -4,14 +4,7 @@ declare(strict_types=1);
 // PHP timeout artır
 set_time_limit(300);
 
-// Output buffering başlat
-ob_start();
-
-// Debug kapalı (React JSON parse hatalarını önlemek için)
-error_reporting(0);
-ini_set('display_errors', '0');
-
-// ✅ CORS HEADER'LARI - HER RESPONSE İÇİN ZORUNLU
+// ✅ CORS HEADER'LARI - EN ÜSTTE, HER RESPONSE İÇİN ZORUNLU
 header("Access-Control-Allow-Origin: https://panel.woontegra.com");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
@@ -20,9 +13,15 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-W
 // OPTIONS preflight için
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
-    ob_end_flush();
     exit;
 }
+
+// Output buffering başlat
+ob_start();
+
+// Debug kapalı (React JSON parse hatalarını önlemek için)
+error_reporting(0);
+ini_set('display_errors', '0');
 
 header("Content-Type: application/json; charset=utf-8");
 
@@ -166,13 +165,7 @@ try {
     $response = $router->dispatch($method, $path);
     echo json_encode($response, JSON_UNESCAPED_UNICODE);
 } catch (Exception $e) {
-    // CORS header'larını catch bloklarında da ekle (her durumda)
-    header("Access-Control-Allow-Origin: https://panel.woontegra.com");
-    header("Access-Control-Allow-Credentials: true");
-    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
-    
-    // HTTP 200 döndür, JSON hata mesajı gönder
+    // HTTP 200 döndür, JSON hata mesajı gönder (CORS header'ları en üstte zaten tanımlı)
     http_response_code(200);
     echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 }
